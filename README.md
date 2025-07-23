@@ -1,4 +1,4 @@
-# AI Research Assistant: A RAG and MCP Demonstration
+# A RAG and MCP Demonstration : AI Research Assistant
 
 This project is a demonstration of a modern AI agent architecture. It implements the **Retrieval-Augmented Generation (RAG)** pattern to answer questions based on a local knowledge base, using principles from the **Model Context Protocol (MCP)** to structure the information sent to the language model.
 
@@ -35,3 +35,30 @@ The agent's logic is contained in `agent.py` and follows these steps:
     ```
 
 You will see the agent's step-by-step process printed to the console, showing how it retrieves information and constructs its prompts to answer different questions.
+
+## Next Steps and Future Improvements
+
+This project provides a solid foundation. The following steps could be taken to evolve it into a production-ready application:
+
+1.  **Upgrade the Retriever with Vector Search:**
+    *   **Problem:** The current retriever uses basic keyword matching and will fail if the query doesn't contain the exact words present in the knowledge base.
+    *   **Solution:** Implement a semantic search retriever. This involves:
+        *   Using a library like `sentence-transformers` to convert the knowledge base text into vector embeddings.
+        *   Storing these embeddings in a vector database like `FAISS` (for local use) or a cloud service like `Pinecone`.
+        *   Comparing the query vector with the knowledge base vectors to find the most semantically similar information.
+
+2.  **Connect to a Real Large Language Model (LLM):**
+    *   **Problem:** The generation step is currently simulated.
+    *   **Solution:** Modify the `_generate_response` method in `agent.py` to make a real API call to an LLM provider.
+        *   Integrate with libraries like `openai`, `google-generativeai`, or `anthropic`.
+        *   Manage API keys securely using environment variables.
+
+3.  **Add Conversation History (Memory):**
+    *   **Problem:** The agent treats every question as a new, independent query. It cannot answer follow-up questions like "Why is that?"
+    *   **Solution:** Enhance the Model Context Protocol (`_model_context_protocol`) to include the last few turns of the conversation, giving the agent short-term memory.
+
+4.  **Build a User Interface:**
+    *   **Problem:** Interaction is limited to the command line.
+    *   **Solution:** Wrap the agent in a simple web framework to create an interactive chat interface.
+        *   Use a library like `Flask` or `FastAPI` for the backend.
+        *   Create a simple HTML/CSS/JavaScript frontend for users to type in their questions.
