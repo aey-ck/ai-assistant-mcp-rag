@@ -1,74 +1,80 @@
 # app.py
 
 import streamlit as st
-from agent import AIResearchAgent # Import our agent
+# Import our agent classes from the new 'agents' package
+from agents.keyword_agent import KeywordAgent
+from agents.vector_agent import VectorAgent
 
 # --- Page Configuration ---
 st.set_page_config(
-    page_title="AI Research Assistant",
+    page_title="Multi-Agent AI Assistant",
     page_icon="🤖",
-    layout="centered",
-    initial_sidebar_state="auto"
+    layout="wide"
 )
 
-# --- Page Title and Description ---
+# --- Page Title and Sidebar ---
 st.title("🤖 AI Research Assistant")
-st.write(
-    "This app demonstrates a simple AI agent using RAG and MCP principles. "
-    "Ask a question about Mars, and the agent will answer based on its local knowledge base."
+st.sidebar.title("Configuration")
+st.sidebar.write(
+    "Choose the agent implementation to power the chat. "
+    "Notice the difference in answer quality between the two."
+)
+
+# --- Agent Selection ---
+agent_type = st.sidebar.selectbox(
+    "Select Agent Type:",
+    ("Vector Agent (Advanced)", "Keyword Agent (Basic)")
 )
 
 # --- Agent Initialization ---
-# We use st.cache_resource to initialize the agent only once, which is more efficient.
+# Use st.cache_resource to load models only once
 @st.cache_resource
-def load_agent():
-    """Loads the AIResearchAgent, caching it to avoid reloading on every interaction."""
-    return AIResearchAgent(knowledge_base_path="knowledge_base.txt")
+def load_vector_agent():
+    return VectorAgent(knowledge_base_path="knowledge_base.txt")
 
-agent = load_agent()
+@st.cache_resource
+def load_keyword_agent():
+    return KeywordAgent(knowledge_base_path="knowledge_base.txt")
+
+# Load the selected agent
+if agent_type == "Vector Agent (Advanced)":
+    agent = load_vector_agent()
+    st.sidebar.info("Using **Vector Agent**: Understands context and meaning.")
+else:
+    agent = load_keyword_agent()
+    st.sidebar.info("Using **Keyword Agent**: Only matches exact words.")
 
 # --- Chat History Management ---
-# Initialize chat history in Streamlit's session state if it doesn't exist
 if "messages" not in st.session_state:
     st.session_state.messages = [
-        {"role": "assistant", "content": "Hello! I am an AI Research Assistant. How can I help you with your questions about Mars?"}
+        {"role": "assistant", "content": "Hello! I am an AI Research Assistant. Select an agent and ask me a question about Mars."}
     ]
 
-# Display existing chat messages
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 # --- User Input and Agent Response ---
-# Get user input from the chat input box
 if prompt := st.chat_input("Ask a question about Mars..."):
-    # Add user's message to chat history and display it
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Get the agent's response
     with st.chat_message("assistant"):
-        # Use a spinner to show that the agent is "thinking"
         with st.spinner("Thinking..."):
-            # We need to capture the agent's full output.
-            # For this example, we'll call the agent and craft a simplified response.
-            # A more advanced version would capture the print statements from the agent.
+            # Get relevant info from the selected agent
+            retrieved_context = agent.retrieve_relevant_info(prompt)
             
-            retrieved_context = agent._retrieve_relevant_info(prompt)
             if not retrieved_context:
-                response = "I do not have enough information to answer this question from my knowledge base."
+                response = "I could not find any relevant information in my knowledge base to answer this question."
             else:
                 # For the UI, we'll just show a clean answer.
-                # The full RAG/MCP process still happens in the background (and prints to terminal).
+                context_for_display = "\n- ".join(retrieved_context)
                 response = (
                     f"Based on my knowledge, here is what I found about '{prompt}':\n\n"
-                    f"Relevant Information:\n"
-                    f"{' '.join(retrieved_context)}"
+                    f"- {context_for_display}"
                 )
 
         st.markdown(response)
     
-    # Add agent's response to chat history
     st.session_state.messages.append({"role": "assistant", "content": response})
-
