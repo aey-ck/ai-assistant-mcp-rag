@@ -1,8 +1,7 @@
 # app.py
 
 import streamlit as st
-# Import our agent classes from the new 'agents' package
-from agents.keyword_agent import KeywordAgent
+from agents.keyword_agent import KeywordAgent # Keyword agent remains for comparison
 from agents.vector_agent import VectorAgent
 
 # --- Page Configuration ---
@@ -16,8 +15,7 @@ st.set_page_config(
 st.title("🤖 AI Research Assistant")
 st.sidebar.title("Configuration")
 st.sidebar.write(
-    "Choose the agent implementation to power the chat. "
-    "Notice the difference in answer quality between the two."
+    "Choose the agent implementation. The Vector Agent is now much smarter!"
 )
 
 # --- Agent Selection ---
@@ -27,7 +25,6 @@ agent_type = st.sidebar.selectbox(
 )
 
 # --- Agent Initialization ---
-# Use st.cache_resource to load models only once
 @st.cache_resource
 def load_vector_agent():
     return VectorAgent(knowledge_base_path="knowledge_base.txt")
@@ -36,13 +33,12 @@ def load_vector_agent():
 def load_keyword_agent():
     return KeywordAgent(knowledge_base_path="knowledge_base.txt")
 
-# Load the selected agent
 if agent_type == "Vector Agent (Advanced)":
     agent = load_vector_agent()
-    st.sidebar.info("Using **Vector Agent**: Understands context and meaning.")
+    st.sidebar.info("Using **Vector Agent**: Includes a classifier to understand query intent and provide more accurate responses.")
 else:
     agent = load_keyword_agent()
-    st.sidebar.info("Using **Keyword Agent**: Only matches exact words.")
+    st.sidebar.info("Using **Keyword Agent**: A basic implementation that only matches exact words.")
 
 # --- Chat History Management ---
 if "messages" not in st.session_state:
@@ -62,18 +58,22 @@ if prompt := st.chat_input("Ask a question about Mars..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            # Get relevant info from the selected agent
-            retrieved_context = agent.retrieve_relevant_info(prompt)
-            
-            if not retrieved_context:
-                response = "I could not find any relevant information in my knowledge base to answer this question."
+            # --- This is the updated logic ---
+            if agent_type == "Vector Agent (Advanced)":
+                # The new agent has a smarter response method
+                response_data = agent.get_response(prompt)
+                response = response_data['content']
             else:
-                # For the UI, we'll just show a clean answer.
-                context_for_display = "\n- ".join(retrieved_context)
-                response = (
-                    f"Based on my knowledge, here is what I found about '{prompt}':\n\n"
-                    f"- {context_for_display}"
-                )
+                # The old agent still uses the simple retrieval method
+                retrieved_context = agent.retrieve_relevant_info(prompt)
+                if not retrieved_context:
+                    response = "I could not find any relevant information."
+                else:
+                    context_for_display = "\n- ".join(retrieved_context)
+                    response = (
+                        f"Based on my knowledge, here is what I found:\n\n"
+                        f"- {context_for_display}"
+                    )
 
         st.markdown(response)
     
